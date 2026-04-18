@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { normalizePhone } from 'src/common/utils/phone.util';
 
 @Injectable()
 export class GroupsService {
@@ -85,6 +86,8 @@ export class GroupsService {
   }
 
   async addMember(groupId: string, adminId: string, dto: AddMemberDto) {
+    const phone = normalizePhone(dto.phoneNumber);
+
     // 1) Find group first
     const group = await this.prisma.group.findUnique({
       where: { id: groupId },
@@ -110,7 +113,7 @@ export class GroupsService {
 
     // 3) Find the user by phone number
     const user = await this.prisma.user.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
+      where: { phoneNumber: phone },
     });
 
     if (!user) {
@@ -182,7 +185,7 @@ export class GroupsService {
       groupId,
       adminId,
       'MEMBER_ADDED',
-      `Added member with phone number ${dto.phoneNumber} at rotation position ${dto.rotationPosition}`,
+      `Added member with phone number ${phone} at rotation position ${dto.rotationPosition}`,
     );
 
     return newMember;

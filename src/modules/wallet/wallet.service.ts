@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-type Candidate = {
+type PayoutItem = {
   amount: number;
   groupName: string;
   periodKey: string;
   position: number;
-  cyclesAway: number;
+  cyclesAway: number; // internal for sorting only
 };
 
 @Injectable()
@@ -38,11 +38,10 @@ export class WalletService {
       },
     });
 
-    let totalUpcomingPayout = 0;
-    let bestCandidate: Candidate | null = null;
+    const payouts: PayoutItem[] = [];
 
     for (const m of memberships) {
-      // ❌ skip if already received payout
+      // ❌ Skip if already received
       if (m.hasReceived) continue;
 
       const group = m.group;
@@ -55,7 +54,6 @@ export class WalletService {
 
       const totalMembers = group.members.length;
 
-      // find current payout position
       const currentIndex = group.members.findIndex(
         (member) => member.id === currentCycle.payoutToMemberId
       );
@@ -65,56 +63,57 @@ export class WalletService {
       const currentPosition = currentIndex + 1;
       const myPosition = m.rotationPosition;
 
-      // calculate distance
       let cyclesAway = myPosition - currentPosition;
 
       if (cyclesAway < 0) {
         cyclesAway += totalMembers;
       }
 
-      // calculate payout
       const amount =
         group.contributionAmount * totalMembers;
 
-      // calculate future period
       const payoutPeriod = this.getNextPeriod(
         currentCycle.periodKey,
         cyclesAway
       );
 
-      // add to total (only valid upcoming)
-      totalUpcomingPayout += amount;
+      payouts.push({
+        amount,
+        groupName: group.name,
+        periodKey: payoutPeriod,
+        position: myPosition,
+        cyclesAway, // used only for sorting
+      });
+    }
 
-      // 🔥 pick nearest payout
-      if (
-        !bestCandidate ||
-        cyclesAway < bestCandidate.cyclesAway
-      ) {
-        bestCandidate = {
-          amount,
-          groupName: group.name,
-          periodKey: payoutPeriod,
-          position: myPosition,
-          cyclesAway,
-        };
+    // SORT: nearest payout first
+    payouts.sort((a, b) => {
+      // first by cyclesAway
+      if (a.cyclesAway !== b.cyclesAway) {
+        return a.cyclesAway - b.cyclesAway;
       }
-    }
 
-    // build final response
-    let nextPayout = null;
+      // then by position
+      return a.position - b.position;
+    });
 
-    if (bestCandidate) {
-      nextPayout = {
-        amount: bestCandidate.amount,
-        groupName: bestCandidate.groupName,
-        periodKey: bestCandidate.periodKey,
-        position: bestCandidate.position,
-      };
-    }
+    // CALCULATE TOTAL
+    const totalUpcomingPayout = payouts.reduce(
+      (sum, p) => sum + p.amount,
+      0
+    );
+
+    //  REMOVE INTERNAL FIELD
+    const cleanPayouts = payouts.map((p) => ({
+      amount: p.amount,
+      groupName: p.groupName,
+      periodKey: p.periodKey,
+      position: p.position,
+    }));
 
     return {
       totalUpcomingPayout,
-      nextPayout,
+      payouts: cleanPayouts,
     };
   }
 }

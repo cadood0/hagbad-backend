@@ -6,32 +6,52 @@ import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyRegistrationOtpDto } from './dto/verify-registration-otp.dto';
 import * as crypto from 'crypto';
+import { WhatsappService } from "../../notifications/whatsapp/whatsapp.service";
+import { normalizePhone } from '../../common/utils/phone.util';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwt: JwtService
+    private jwt: JwtService,
+    private whatsapp: WhatsappService
   ) {}
-
-
   async register(dto: RegisterDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
+  // 🔥 normalize phone (IMPORTANT: keep consistent)
+  const phone = normalizePhone(dto.phoneNumber);
+
+  const existingUser = await this.prisma.user.findUnique({
+    where: { phoneNumber: phone },
+  });
+
+  const otpCode = crypto.randomInt(100000, 1000000).toString();
+  const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  let user;
+
+  // ✅ CASE 1: already verified → block
+  if (existingUser && existingUser.isPhoneVerified) {
+    throw new ConflictException('Phone number is already registered');
+  }
+
+  // ✅ CASE 2: exists but NOT verified → resend OTP
+  if (existingUser && !existingUser.isPhoneVerified) {
+    user = await this.prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        otpCode,
+        otpExpiresAt,
+        otpUsedAt: null,
+      },
     });
-
-    if (existingUser) {
-      throw new ConflictException('Phone number is already registered');
-    }
-
+  } else {
+    // ✅ CASE 3: new user → create
     const hashedPin = await bcrypt.hash(dto.pin, 10);
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
-    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    const user = await this.prisma.user.create({
+    user = await this.prisma.user.create({
       data: {
         fullName: dto.fullName,
-        phoneNumber: dto.phoneNumber,
+        phoneNumber: phone,
         pin: hashedPin,
         otpCode,
         otpExpiresAt,
@@ -39,22 +59,32 @@ export class AuthService {
         isPhoneVerified: false,
       },
     });
-
-    return {
-      message: 'User registered successfully. Verify OTP to activate account.',
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        phoneNumber: user.phoneNumber,
-        isPhoneVerified: user.isPhoneVerified,
-      },
-      otp: otpCode, // REMOVE IN PRODUCTION
-    };
   }
 
+  // 🔥 SEND OTP (SAFE MODE)
+  try {
+    await this.whatsapp.sendOtp(phone, otpCode);
+  } catch (error) {
+    console.error('OTP send failed:', error);
+    // optional: don't crash user registration
+  }
+
+  return {
+    message: 'OTP sent via WhatsApp. Please verify your phone number.',
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      isPhoneVerified: user.isPhoneVerified,
+    },
+  };
+}
+
   async verifyRegistrationOtp(dto: VerifyRegistrationOtpDto) {
+    const phone = normalizePhone(dto.phoneNumber);
+
     const user = await this.prisma.user.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
+      where: { phoneNumber: phone },
     });
 
     if (!user) {
@@ -72,6 +102,26 @@ export class AuthService {
     if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
       throw new UnauthorizedException('OTP has expired');
     }
+
+    // 🔥 EXPIRED OTP → RESEND AUTOMATICALLY
+  if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+    const newOtp = crypto.randomInt(100000, 1000000).toString();
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otpCode: newOtp,
+        otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        otpUsedAt: null,
+      },
+    });
+
+    await this.whatsapp.sendOtp(user.phoneNumber, newOtp);
+
+    throw new UnauthorizedException(
+      'OTP expired. A new OTP has been sent.',
+    );
+  } 
 
     if (user.otpUsedAt) {
       throw new UnauthorizedException('OTP has already been used');
@@ -93,8 +143,10 @@ export class AuthService {
   }
 
    async login(dto: LoginDto) {
+    const phone = normalizePhone(dto.phoneNumber);
+
     const user = await this.prisma.user.findUnique({
-      where: { phoneNumber: dto.phoneNumber },
+      where: { phoneNumber: phone },
     });
 
     if (!user) {
