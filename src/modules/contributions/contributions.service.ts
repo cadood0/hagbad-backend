@@ -37,7 +37,9 @@ export class ContributionsService {
           include: {
             user: {
               select: {
-                fullName: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
               },
             },
           },
@@ -65,7 +67,9 @@ export class ContributionsService {
           include: {
             user: {
               select: {
-                fullName: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
               },
             },
           },
@@ -101,7 +105,7 @@ export class ContributionsService {
       contributionId,
       cycleId,
       memberId: contribution.memberId,
-      memberName: contribution.member.user.fullName,
+      memberName: `${contribution.member.user.firstName} ${contribution.member.user.middleName ?? ''} ${contribution.member.user.lastName}`.trim(),
     });
 
     return updated;
