@@ -69,7 +69,9 @@ export class GroupsService {
             user: {
               select: {
                 id: true,
-                fullName: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
               },
             },
           },
@@ -173,7 +175,9 @@ export class GroupsService {
         user: {
           select: {
             id: true,
-            fullName: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
             phoneNumber: true,
           },
         },
