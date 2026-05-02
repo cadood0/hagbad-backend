@@ -9,6 +9,7 @@ import { CyclesModule } from './modules/cycles/cycles.module';
 import { ContributionsModule } from './modules/contributions/contributions.module';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { WalletModule } from './modules/wallet/wallet.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WalletModule } from './modules/wallet/wallet.module';
     CyclesModule,
     ContributionsModule,
     WalletModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
