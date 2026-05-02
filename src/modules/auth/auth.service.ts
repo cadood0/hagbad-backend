@@ -50,7 +50,9 @@ export class AuthService {
 
     user = await this.prisma.user.create({
       data: {
-        fullName: dto.fullName,
+        firstName: dto.firstName,
+        middleName: dto.middleName,
+        lastName: dto.lastName,
         phoneNumber: phone,
         pin: hashedPin,
         otpCode,
@@ -73,7 +75,7 @@ export class AuthService {
     message: 'OTP sent via WhatsApp. Please verify your phone number.',
     user: {
       id: user.id,
-      fullName: user.fullName,
+      fullName: `${user.firstName} ${user.middleName ?? ''} ${user.lastName}`.trim(),
       phoneNumber: user.phoneNumber,
       isPhoneVerified: user.isPhoneVerified,
     },
@@ -163,14 +165,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone number or PIN');
     }
 
-    const payload = { sub: user.id, phoneNumber: user.phoneNumber };
+    const payload = { sub: user.id, phoneNumber: user.phoneNumber, role: user.role };
     const token = this.jwt.sign(payload);
 
     return {
       access_token: token,
       user: {
         id: user.id,
-        fullName: user.fullName,
+        fullName: `${user.firstName} ${user.middleName ?? ''} ${user.lastName}`.trim(),
         phoneNumber: user.phoneNumber,
       },
     };
@@ -182,7 +184,9 @@ export class AuthService {
       select: {
         id: true,
         phoneNumber: true,
-        fullName: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
         isPhoneVerified: true,
         createdAt: true,
       },
