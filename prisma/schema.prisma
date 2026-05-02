@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider     = "prisma-client"
   output       = "../generated/prisma/client"
@@ -15,134 +9,88 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  fullName    String?
-  phoneNumber String   @unique
-  pin     String
-
+  id              String         @id @default(uuid())
+  phoneNumber     String         @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  isPhoneVerified Boolean        @default(false)
   otpCode         String?
   otpExpiresAt    DateTime?
   otpUsedAt       DateTime?
-
-  isPhoneVerified Boolean       @default(false)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  groupMembers GroupMembers[]
-  activityLogs ActivityLog[]
-  groups       Group[]
+  pin             String
+  firstName       String?
+  lastName        String?
+  middleName      String?
+  role            UserRole       @default(USER)
+  activityLogs    ActivityLog[]
+  groups          Group[]
+  groupMembers    GroupMembers[]
 }
 
 model Group {
-  id                 String      @id @default(uuid())
+  id                 String         @id @default(uuid())
   name               String
   description        String?
-  contributionAmount Int // money in cents
-  status             GroupStatus @default(ACTIVE)
-
-  // - number = fixed months (e.g., 6, 12, 24)
-  durationMonths Int?
-
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  members      GroupMembers[]
-  cycles       GroupCycle[]
-  activityLogs ActivityLog[]
-}
-
-enum GroupStatus {
-  ACTIVE
-  CLOSED
+  contributionAmount Int
+  status             GroupStatus    @default(ACTIVE)
+  durationMonths     Int?
+  createdById        String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  activityLogs       ActivityLog[]
+  createdBy          User           @relation(fields: [createdById], references: [id])
+  cycles             GroupCycle[]
+  members            GroupMembers[]
 }
 
 model GroupMembers {
-  id      String     @id @default(uuid())
-  groupId String
-  userId  String
-  role    MemberRole @default(MEMBER)
-
-  // Rotation:
+  id               String         @id @default(uuid())
+  groupId          String
+  userId           String
+  role             MemberRole     @default(MEMBER)
   rotationPosition Int
-  hasReceived      Boolean @default(false)
+  hasReceived      Boolean        @default(false)
+  joinedAt         DateTime       @default(now())
+  contributions    Contribution[]
+  group            Group          @relation(fields: [groupId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
 
-  joinedAt DateTime @default(now())
-
-  group Group @relation(fields: [groupId], references: [id])
-  user  User  @relation(fields: [userId], references: [id])
-
-  contributions Contribution[]
-
-  // Enforce: user can join group once, and rotation position must be unique in group
   @@unique([groupId, userId])
   @@unique([groupId, rotationPosition])
   @@index([groupId])
   @@index([userId])
 }
 
-enum MemberRole {
-  ADMIN
-  MEMBER
-}
-
 model GroupCycle {
-  id      String @id @default(uuid())
-  groupId String
-
-  // Monthly-only cycle key, e.g. "2026-02"
-  periodKey String
-
-  // When contributions are due (you decide in backend: e.g., 1st or 5th of month)
-  dueDate DateTime
-
-  status CycleStatus @default(ACTIVE)
-
-  // System-managed payout tracking:
+  id                String         @id @default(uuid())
+  groupId           String
+  periodKey         String
+  dueDate           DateTime
+  status            CycleStatus    @default(ACTIVE)
   payoutToMemberId  String?
   payoutConfirmedAt DateTime?
-
-  group Group @relation(fields: [groupId], references: [id])
-
-  contributions Contribution[]
+  contributions     Contribution[]
+  group             Group          @relation(fields: [groupId], references: [id])
 
   @@unique([groupId, periodKey])
   @@index([groupId])
   @@index([status])
 }
 
-enum CycleStatus {
-  ACTIVE
-  CLOSED
-}
-
 model Contribution {
-  id       String @id @default(uuid())
+  id       String        @id @default(uuid())
   cycleId  String
   memberId String
-
-  amount Int // must equal Group.contributionAmount (enforce in code)
-
-  status PaymentStatus @default(UNPAID)
-  paidAt DateTime?
-
-  cycle  GroupCycle   @relation(fields: [cycleId], references: [id])
-  member GroupMembers @relation(fields: [memberId], references: [id])
-
-  //payments Payment[]
+  amount   Int
+  status   PaymentStatus @default(UNPAID)
+  paidAt   DateTime?
+  cycle    GroupCycle    @relation(fields: [cycleId], references: [id])
+  member   GroupMembers  @relation(fields: [memberId], references: [id])
 
   @@unique([cycleId, memberId])
   @@index([cycleId])
   @@index([memberId])
   @@index([status])
-}
-
-enum PaymentStatus {
-  PAID
-  UNPAID
 }
 
 model ActivityLog {
@@ -152,7 +100,31 @@ model ActivityLog {
   action    String
   details   String?
   createdAt DateTime @default(now())
+  group     Group    @relation(fields: [groupId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
 
-  group Group @relation(fields: [groupId], references: [id])
-  user  User  @relation(fields: [userId], references: [id])
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum GroupStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum CycleStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
 }
