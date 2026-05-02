@@ -4,15 +4,25 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\+?\d{9,15}$/)
-  phoneNumber: string;
+  phoneNumber!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(4)
-  pin: string;
+  pin!: string;
 
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  fullName: string;
+  firstName!: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  middleName!: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  lastName!: string;
 }
