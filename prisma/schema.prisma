@@ -25,6 +25,9 @@ model User {
   activityLogs    ActivityLog[]
   groups          Group[]
   groupMembers    GroupMembers[]
+
+  invitationsReceived GroupInvitation[] @relation("InvitedUser")
+  invitationsSent     GroupInvitation[] @relation("InvitedBy")
 }
 
 model Group {
@@ -41,6 +44,8 @@ model Group {
   createdBy          User           @relation(fields: [createdById], references: [id])
   cycles             GroupCycle[]
   members            GroupMembers[]
+
+  invitations GroupInvitation[]
 }
 
 model GroupMembers {
@@ -93,6 +98,27 @@ model Contribution {
   @@index([status])
 }
 
+model GroupInvitation {
+  id          String   @id @default(uuid())
+
+  groupId     String
+  invitedById String
+  userId      String
+
+  status      InvitationStatus @default(PENDING)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group       Group @relation(fields: [groupId], references: [id])
+
+  invitedBy   User @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  user        User @relation("InvitedUser", fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
 model ActivityLog {
   id        String   @id @default(uuid())
   groupId   String
@@ -103,6 +129,7 @@ model ActivityLog {
   group     Group    @relation(fields: [groupId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
 }
+
 
 enum UserRole {
   ADMIN
@@ -127,4 +154,10 @@ enum CycleStatus {
 enum PaymentStatus {
   PAID
   UNPAID
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 }
