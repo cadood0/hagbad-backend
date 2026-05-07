@@ -4,6 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
 export class PrismaService extends PrismaClient {
+  groupInvitations: any;
   constructor() {
     const connectionString = process.env.DATABASE_URL;
     console.log('DATABASE_URL =', connectionString);
