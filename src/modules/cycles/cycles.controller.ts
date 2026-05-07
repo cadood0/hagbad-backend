@@ -6,7 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateCycleDto } from './dto/create-cycle.dto';
 
 @UseGuards(JwtAuthGuard, GroupAdminGuard)
-@Controller('groups/:groupId/cycles')
+@Controller('/api/v1/groups/:groupId/cycles')
 export class CyclesController {
   constructor(private readonly cyclesService: CyclesService) {}
 
