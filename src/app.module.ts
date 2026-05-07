@@ -10,6 +10,7 @@ import { ContributionsModule } from './modules/contributions/contributions.modul
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { GroupInvitationsModule } from './modules/group-invitations/group-invitations.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ContributionsModule,
     WalletModule,
     AdminModule,
+    GroupInvitationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
