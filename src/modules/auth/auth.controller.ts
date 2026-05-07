@@ -6,7 +6,7 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { VerifyRegistrationOtpDto } from './dto/verify-registration-otp.dto';
 
 
-@Controller('auth')
+@Controller('/api/v1/auth')
 export class AuthController {
     constructor(private auth: AuthService) {}
 
