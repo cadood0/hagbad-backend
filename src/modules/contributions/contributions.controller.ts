@@ -5,7 +5,7 @@ import { GroupAdminGuard } from '../groups/guards/group-admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
-@Controller('groups/:groupId/cycles/:cycleId/contributions')
+@Controller('/api/v1/groups/:groupId/cycles/:cycleId/contributions')
 export class ContributionsController {
   constructor(private readonly contributionsService: ContributionsService) {}
 
