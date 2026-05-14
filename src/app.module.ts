@@ -11,6 +11,7 @@ import { ActivityLogModule } from './modules/activity-log/activity-log.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { GroupInvitationsModule } from './modules/group-invitations/group-invitations.module';
+import { EmergencyVotesModule } from './modules/emergency-votes/emergency-votes.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { GroupInvitationsModule } from './modules/group-invitations/group-invita
     WalletModule,
     AdminModule,
     GroupInvitationsModule,
+    EmergencyVotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
