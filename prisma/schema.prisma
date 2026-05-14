@@ -46,6 +46,7 @@ model Group {
   members            GroupMembers[]
 
   invitations GroupInvitation[]
+  emergencyRequests EmergencyRequest[]
 }
 
 model GroupMembers {
@@ -59,11 +60,14 @@ model GroupMembers {
   contributions    Contribution[]
   group            Group          @relation(fields: [groupId], references: [id])
   user             User           @relation(fields: [userId], references: [id])
+  emergencyRequests EmergencyRequest[]
+  emergencyVotes    EmergencyVote[]
 
   @@unique([groupId, userId])
   @@unique([groupId, rotationPosition])
   @@index([groupId])
   @@index([userId])
+
 }
 
 model GroupCycle {
@@ -119,6 +123,43 @@ model GroupInvitation {
   @@unique([groupId, userId])
 }
 
+model EmergencyRequest {
+  id            String   @id @default(uuid())
+
+  groupId       String
+  requesterId   String
+
+  reason        String
+
+  status        EmergencyRequestStatus @default(PENDING)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  group          Group         @relation(fields: [groupId], references: [id])
+
+  requester      GroupMembers  @relation(fields: [requesterId], references: [id])
+
+  votes          EmergencyVote[]
+}
+
+model EmergencyVote {
+  id            String   @id @default(uuid())
+
+  requestId     String
+  memberId      String
+
+  vote          EmergencyVoteType
+
+  createdAt     DateTime @default(now())
+
+  request       EmergencyRequest @relation(fields: [requestId], references: [id])
+
+  member        GroupMembers @relation(fields: [memberId], references: [id])
+
+  @@unique([requestId, memberId])
+}
+
 model ActivityLog {
   id        String   @id @default(uuid())
   groupId   String
@@ -160,4 +201,15 @@ enum InvitationStatus {
   PENDING
   ACCEPTED
   DECLINED
+}
+
+enum EmergencyRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EmergencyVoteType {
+  YES
+  NO
 }
