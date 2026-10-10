@@ -48,7 +48,7 @@ PORT=3000
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | PostgreSQL connection string. The app exits on startup if it is missing. |
-| `JWT_SECRET` | recommended | Signs access tokens. Falls back to `dev-secret` when unset. |
+| `JWT_SECRET` | yes | Signs access tokens. The app exits on startup if it is missing or blank. |
 | `PORT` | no | HTTP port. Defaults to `3000`. |
 
 Apply the schema and generate the Prisma client (output goes to `generated/prisma`, which is gitignored):

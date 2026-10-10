@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { NotificationsModule } from '../../notifications/notifications.module';
+import { requireJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { NotificationsModule } from '../../notifications/notifications.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'dev-secret',
+        secret: requireJwtSecret(configService),
         signOptions: { expiresIn: '7d' },
       }),
     }),
